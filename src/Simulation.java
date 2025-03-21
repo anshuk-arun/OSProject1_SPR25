@@ -1,76 +1,131 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+class Process {
+    int pid;
+    int arrivalTime;
+    int burstTime;
+    int priority;
+
+    public Process(int pid, int arrivalTime, int burstTime, int priority) {
+        this.pid = pid;
+        this.arrivalTime = arrivalTime;
+        this.burstTime = burstTime;
+        this.priority = priority;
+    }
+
+    @Override
+    public String toString() {
+        return "PID: " + pid + ", Arrival Time: " + arrivalTime + ", Burst Time: " + burstTime + ", Priority: " + priority;
+    }
+}
+
 public class Simulation {
-    public static void main(String[] args) throws Exception {
+    private static List<Process> processes = new ArrayList<>();
+
+    public static void main(String[] args) {
         System.out.println("Hello, World!");
+        
+        // You will have to change
+        loadProcessData("src/processes.txt");
 
         /* User Access the Menu */
         boolean exitFlag = false;
-        while (!exitFlag){
+        Scanner scanner = new Scanner(System.in);
+
+        while (!exitFlag) {
             System.out.print(menuToStr());
-            int option = System.in.read();
 
-            switch (option) {
-                case 1:
-                    fcfs();
-                case 2:
-                    sjf();
-                case 3:
-                    rr();
-                case 4:
-                    ps();
-                case 9:
-                    exitFlag = true;
-                default:
-                    // Error Handling Needed
-                    break;
+            if (scanner.hasNextInt()) {
+                int option = scanner.nextInt();
+
+                switch (option) {
+                    case 1:
+                        fcfs();
+                        break;
+                    case 2:
+                        sjf();
+                        break;
+                    case 3:
+                        rr();
+                        break;
+                    case 4:
+                        ps();
+                        break;
+                    case 9:
+                        exitFlag = true;
+                        System.out.println("Exiting simulation");
+                        break;
+                    default:
+                        System.out.println("Invalid input. Please try again.");
+                        break;
+                }
+            } else {
+                System.out.println("Invalid input. Please enter a number.");
+                scanner.next();
             }
-
         }
-        
 
+        scanner.close();
     }
 
-    public static String menuToStr(){
-        String output = "";
+    public static void loadProcessData(String fileName) {
+        try {
+            File file = new File(fileName);
+            Scanner fileScanner = new Scanner(file);
 
-        output += "Welcome to Process Scheduling Simulation!\n";
-        output += "Please Select a scheduling algorithm:\n";
-        output += "[1]:\tFirst Come, First Served (FCFS)\n"
+            if (fileScanner.hasNextLine()) {
+                fileScanner.nextLine(); 
+            }
+
+            while (fileScanner.hasNext()) {
+                int pid = fileScanner.nextInt();
+                int arrivalTime = fileScanner.nextInt();
+                int burstTime = fileScanner.nextInt();
+                int priority = fileScanner.nextInt();
+                
+                processes.add(new Process(pid, arrivalTime, burstTime, priority));
+            }
+
+            fileScanner.close();
+
+            System.out.println("Loaded Processes:");
+            for (Process p : processes) {
+                System.out.println(p);
+            }
+
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: File not found.");
+        }
+    }
+
+    public static String menuToStr() {
+        return "Welcome to Process Scheduling Simulation!\n"
+                + "Please Select a scheduling algorithm:\n"
+                + "[1]:\tFirst Come, First Served (FCFS)\n"
                 + "[2]:\tShortest Job First (SJF)\n"
                 + "[3]:\tRound Robin (RR)\n"
                 + "[4]:\tPriority Scheduling\n"
-                + "[9]:\tExit Simulation\n";
-        output += "User Input:\t";
-
-        return output;
+                + "[9]:\tExit Simulation\n"
+                + "User Input:\t";
     }
 
-    // First Come, First Served
-    public static void fcfs(){
-
+    public static void fcfs() {
         System.out.println("FCFS");
-
     }
 
-    // Shortest Job First
-    public static void sjf(){
-
+    public static void sjf() {
         System.out.println("SJF");
-
     }
 
-    // Round Robin
-    public static void rr(){
-
+    public static void rr() {
         System.out.println("RR");
-
     }
 
-    // Priority Scheduling
-    public static void ps(){
-
+    public static void ps() {
         System.out.println("PS");
-
     }
-
-
 }
