@@ -183,7 +183,113 @@ public class Simulation {
     
 
     public static void sjf() {
-        System.out.println("SJF");
+        System.out.println("\nShortest Job First\n");
+
+        // Sorts the processes by arrivalTime to get the "first comers" in order
+        processes.sort((p1, p2) -> Integer.compare(p1.arrivalTime, p2.arrivalTime));
+
+        //declare variables
+        int currentTime = 0;
+        int totalTAT = 0;
+        int totalWT = 0;
+        List<String> ganttChart = new ArrayList<>();
+        List<Integer> timeStamps = new ArrayList<>();
+        List<Process> waitingP = new ArrayList<>();
+
+        // Choose the first process with minimum arrival time and burst time
+        Process p = processes.get(0);
+        int p_index = 0;
+        for (int i = 1; i < processes.size(); i++){
+            if (processes.get(i).arrivalTime <= p.arrivalTime){
+                
+                // compare burstTimes
+                if (processes.get(i).burstTime < p.burstTime){
+                    p = processes.get(i);
+                    p_index = i;
+                }
+            }
+            else{
+                // Exit choosing the next process
+                i = processes.size();
+            }
+
+        }
+        // to run this process, remove it from available processes to run
+        waitingP.add(processes.remove(p_index));
+
+        // the SJF code to calculate and print
+        System.out.printf("%-5s %-10s %-10s %-10s %-10s %-10s\n","PID", "Arrival", "Burst", "Completion", "TAT", "WT");
+        for (Process counter : processes){
+
+            // Choose the process with minimum burst Time among waiting processes
+            // Initial Waiting
+            p_index = 0;
+            p = waitingP.get(p_index);
+            // need to choose a process that definitely has lowest burst Time
+            if (!waitingP.isEmpty()){
+                for (int i = 1; i < waitingP.size(); i++){
+
+                    // compare Burst Times for lowest
+                    if (waitingP.get(i).burstTime < p.burstTime){
+                        p = waitingP.get(i);
+                        p_index = i;
+                    }
+                }
+            }
+            // make sure to remove the running process from the waiting queue
+            waitingP.remove(p_index);
+
+            //calculate variables
+            int startTime = currentTime;
+            int completionTime = currentTime + p.burstTime;
+            int turnaroundTime = completionTime - p.arrivalTime;
+            int waitingTime = turnaroundTime - p.burstTime;
+
+            totalTAT += turnaroundTime;
+            totalWT += waitingTime;
+
+            //track details for gantt chart printing
+            ganttChart.add("P" + p.pid);
+            timeStamps.add(startTime);
+
+            //print details of process handled in FCSC
+            System.out.printf("%-5d %-10d %-10d %-10d %-10d %-10d\n", p.pid, p.arrivalTime, p.burstTime, completionTime, turnaroundTime, waitingTime);
+
+            // Add to the Waiting Processes of all process that have arrived while current Process was running
+            for (Process nextP : processes){
+                if (nextP.arrivalTime <= currentTime){
+                    waitingP.add(nextP);
+                    processes.remove(nextP);
+                }
+            }
+
+            //
+        }
+        //add final time for gantt chart
+        timeStamps.add(currentTime);
+
+        //needed variables calculated and printed
+        int n = processes.size();
+        System.out.println("\nAverage Turnaround Time: " + (double) totalTAT / n);
+        System.out.println("Average Waiting Time: " + (double) totalWT / n);
+
+        //Gantt Chart printing
+        System.out.println("\nGantt Chart:");
+        System.out.print(" ");
+        System.out.println();
+
+        System.out.print("|");
+        for (String ganttStr : ganttChart) {
+            System.out.print("  " + ganttStr + "  |");
+        }
+        System.out.println();
+
+
+        for (int i = 0; i < timeStamps.size(); i++) {
+            System.out.printf("%-6d ", timeStamps.get(i));
+        }
+        System.out.println();
+        System.out.println();
     }
 
     public static void rr() {
