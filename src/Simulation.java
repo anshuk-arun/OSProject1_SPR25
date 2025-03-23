@@ -186,7 +186,7 @@ public class Simulation {
         System.out.println("\nShortest Job First (SJF)\n");
 
         // Sorts the processes by arrivalTime to get the "first comers" in order
-        processes.sort((p1, p2) -> Integer.compare(p1.arrivalTime, p2.arrivalTime));
+        processes.sort((p1, p2) -> Integer.compare(p1.burstTime, p2.burstTime));
 
         //declare variables
         int currentTime = 0;
