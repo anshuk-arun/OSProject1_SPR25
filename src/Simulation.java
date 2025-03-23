@@ -183,7 +183,72 @@ public class Simulation {
     
 
     public static void sjf() {
-        System.out.println("SJF");
+        System.out.println("\nShortest Job First (SJF)\n");
+
+        // Sorts the processes by arrivalTime to get the "first comers" in order
+        processes.sort((p1, p2) -> Integer.compare(p1.arrivalTime, p2.arrivalTime));
+
+        //declare variables
+        int currentTime = 0;
+        int totalTAT = 0;
+        int totalWT = 0;
+        List<String> ganttChart = new ArrayList<>();
+        List<Integer> timeStamps = new ArrayList<>();
+
+        // the FCFS code to calculate and print
+        System.out.printf("%-5s %-10s %-10s %-10s %-10s %-10s\n","PID", "Arrival", "Burst", "Completion", "TAT", "WT");
+        for (Process p : processes) {
+            //to handle gaps in arrival time e.g p1 finishes at 4 but p2 doesnt start till 6
+            //current time would hold 4 since that is when last process finished but newest process arrives
+            // at 6 so we must account for the 2 seconds passed 
+            if (currentTime < p.arrivalTime) {
+                currentTime = p.arrivalTime;  
+            }
+
+            //calculate variables
+            int startTime = currentTime;
+            int completionTime = currentTime + p.burstTime;
+            int turnaroundTime = completionTime - p.arrivalTime;
+            int waitingTime = turnaroundTime - p.burstTime;
+
+            totalTAT += turnaroundTime;
+            totalWT += waitingTime;
+
+            //track details for gantt chart printing
+            ganttChart.add("P" + p.pid);
+            timeStamps.add(startTime);
+
+            //print details of process handled in FCSC
+            System.out.printf("%-5d %-10d %-10d %-10d %-10d %-10d\n", p.pid, p.arrivalTime, p.burstTime, completionTime, turnaroundTime, waitingTime);
+
+            //current time is when the process completes in FCFS unless there is a gap as handled above
+            currentTime = completionTime;
+        }
+        //add final time for gantt chart
+        timeStamps.add(currentTime);
+
+        //needed variables calculated and printed
+        int n = processes.size();
+        System.out.println("\nAverage Turnaround Time: " + (double) totalTAT / n);
+        System.out.println("Average Waiting Time: " + (double) totalWT / n);
+
+        //Gantt Chart printing
+        System.out.println("\nGantt Chart:");
+        System.out.print(" ");
+        System.out.println();
+
+        System.out.print("|");
+        for (String p : ganttChart) {
+            System.out.print("  " + p + "  |");
+        }
+        System.out.println();
+
+
+        for (int i = 0; i < timeStamps.size(); i++) {
+            System.out.printf("%-6d ", timeStamps.get(i));
+        }
+        System.out.println();
+        System.out.println();
     }
 
     public static void rr() {
