@@ -1,4 +1,8 @@
-# OSProject1_SPR25
+# OSProject2_SPR25
+
+### Builds upon Project 1.
+Simulate realtime Process Execution using threads
+Implement one classic Sycnronization Problem
 
 ## Getting Started
 
