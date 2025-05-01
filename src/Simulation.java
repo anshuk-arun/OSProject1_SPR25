@@ -4,27 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-class Process {
-    int pid;
-    int arrivalTime;
-    int burstTime;
-    int priority;
-
-    public Process(int pid, int arrivalTime, int burstTime, int priority) {
-        this.pid = pid;
-        this.arrivalTime = arrivalTime;
-        this.burstTime = burstTime;
-        this.priority = priority;
-    }
-
-    @Override
-    public String toString() {
-        return "PID: " + pid + ", Arrival Time: " + arrivalTime + ", Burst Time: " + burstTime + ", Priority: " + priority;
-    }
-}
 
 public class Simulation {
     private static List<Process> processes = new ArrayList<>();
+    private static List<ProcessThread> procThreads = new ArrayList<>();
+
 
     public static void main(String[] args) {
         System.out.println("Hello, World!");
@@ -36,8 +20,11 @@ public class Simulation {
         Scanner scanner = new Scanner(System.in);
 
         while (!exitFlag) {
+
+            // Display the Menu
             System.out.print(menuToStr());
 
+            // Take the User's selection and execute it
             if (scanner.hasNextInt()) {
                 int option = scanner.nextInt();
 
@@ -62,7 +49,9 @@ public class Simulation {
                         System.out.println("Invalid input. Please try again.");
                         break;
                 }
-            } else {
+            }
+            // User selected invalid input 
+            else {
                 System.out.println("Invalid input. Please enter a number.");
                 scanner.next();
             }
@@ -87,13 +76,21 @@ public class Simulation {
                 int priority = fileScanner.nextInt();
                 
                 processes.add(new Process(pid, arrivalTime, burstTime, priority));
+                procThreads.add(new ProcessThread(pid, burstTime));
             }
 
             fileScanner.close();
 
+            // Display all the Loaded Processes from processes.txt
             System.out.println("Loaded Processes:");
             for (Process p : processes) {
                 System.out.println(p);
+            }
+
+            // Same thing, but with ProcessThreads
+            System.out.println("Loaded Processes w/ ProcessThread: ");
+            for (ProcessThread pt : procThreads){
+                System.out.println(pt);
             }
 
         } catch (FileNotFoundException e) {
@@ -102,12 +99,12 @@ public class Simulation {
     }
 
     public static String menuToStr() {
-        return "Welcome to Process Scheduling Simulation!\n"
-                + "Please Select a scheduling algorithm:\n"
-                + "[1]:\tFirst Come, First Served (FCFS)\n"
-                + "[2]:\tShortest Job First (SJF)\n"
-                + "[3]:\tRound Robin (RR)\n"
-                + "[4]:\tPriority Scheduling\n"
+        return "Welcome to Process Scheduling Simulation 2!\n"
+                + "Please Enjoy the Synchronization problem simulation of:\n"
+                + "[1]:\tDining Philosophers || First Come, First Served (FCFS)\n"
+                + "[2]:\tReaders-Writers || Shortest Job First (SJF)\n"
+                + "[3]:\tProducer-Consumer || Round Robin (RR)\n"
+                + "[4]:\tN/A || Priority Scheduling\n"
                 + "[9]:\tExit Simulation\n"
                 + "User Input:\t";
     }
