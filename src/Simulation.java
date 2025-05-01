@@ -1,39 +1,84 @@
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-class Process {
-    int pid;
-    int arrivalTime;
-    int burstTime;
-    int priority;
+class ProcessThread extends Thread {
+    int pid, burstTime;
 
-    public Process(int pid, int arrivalTime, int burstTime, int priority) {
+    public ProcessThread(int pid, int burstTime) {
         this.pid = pid;
-        this.arrivalTime = arrivalTime;
         this.burstTime = burstTime;
-        this.priority = priority;
     }
 
-    @Override
-    public String toString() {
-        return "PID: " + pid + ", Arrival Time: " + arrivalTime + ", Burst Time: " + burstTime + ", Priority: " + priority;
+    public void run() {
+        System.out.println("[Process " + pid + "] started.");
+        try {
+            Thread.sleep(burstTime * 1000L);
+        } catch (InterruptedException e) {
+            System.out.println("[Process " + pid + "] interrupted.");
+        }
+        System.out.println("[Process " + pid + "] finished.");
+    }
+}
+
+class Philosopher extends Thread {
+    private final int id;
+    private final Lock leftFork;
+    private final Lock rightFork;
+    private final int duration;
+
+    public Philosopher(int id, Lock leftFork, Lock rightFork, int duration) {
+        this.id = id;
+        this.leftFork = leftFork;
+        this.rightFork = rightFork;
+        this.duration = duration;
+    }
+
+    public void run() {
+        System.out.println("[Philosopher " + id + "] Thinking...");
+        try {
+            Thread.sleep(duration * 500L);
+        } catch (InterruptedException ignored) {}
+
+        System.out.println("[Philosopher " + id + "] Waiting for forks...");
+
+        Lock firstFork = (id % 2 == 0) ? leftFork : rightFork;
+        Lock secondFork = (id % 2 == 0) ? rightFork : leftFork;
+
+        synchronizedForkPickup(firstFork, secondFork);
+    }
+
+    private void synchronizedForkPickup(Lock first, Lock second) {
+        first.lock();
+        try {
+            System.out.println("[Philosopher " + id + "] Picked up first fork.");
+            second.lock();
+            try {
+                System.out.println("[Philosopher " + id + "] Picked up second fork.");
+                System.out.println("[Philosopher " + id + "] Eating...");
+                Thread.sleep(duration * 500L);  
+                System.out.println("[Philosopher " + id + "] Finished eating.");
+            } catch (InterruptedException ignored) {
+            } finally {
+                second.unlock();
+                System.out.println("[Philosopher " + id + "] Released second fork.");
+            }
+        } finally {
+            first.unlock();
+            System.out.println("[Philosopher " + id + "] Released first fork.");
+        }
     }
 }
 
 public class Simulation {
-    private static List<Process> processes = new ArrayList<>();
 
     public static void main(String[] args) {
-        System.out.println("Hello, World!");
-        
-        loadProcessData("src/processes.txt");
+        System.out.println("Welcome to Process and Synchronization Simulation!");
 
-        /* User Access the Menu */
-        boolean exitFlag = false;
         Scanner scanner = new Scanner(System.in);
+        boolean exitFlag = false;
 
         while (!exitFlag) {
             System.out.print(menuToStr());
@@ -43,24 +88,35 @@ public class Simulation {
 
                 switch (option) {
                     case 1:
-                        fcfs();
+                        System.out.println("Simulating Processes with Threads...");
+                        List<ProcessThread> processThreads = loadProcessData("src/processes.txt");
+
+                        for (Thread t : processThreads) {
+                            t.start();
+                        }
+
+                        for (Thread t : processThreads) {
+                            try {
+                                t.join();
+                            } catch (InterruptedException e) {
+                                System.out.println("Thread join interrupted.");
+                            }
+                        }
+                        System.out.println("All processes have finished.\n");
                         break;
+
                     case 2:
-                        sjf();
+                        System.out.println("Running Dining Philosophers Simulation...");
+                        diningPhilosophers("src/processes.txt");
                         break;
-                    case 3:
-                        rr();
-                        break;
-                    case 4:
-                        ps();
-                        break;
+
                     case 9:
                         exitFlag = true;
-                        System.out.println("Exiting simulation");
+                        System.out.println("Exiting simulation.");
                         break;
+
                     default:
                         System.out.println("Invalid input. Please try again.");
-                        break;
                 }
             } else {
                 System.out.println("Invalid input. Please enter a number.");
@@ -71,191 +127,81 @@ public class Simulation {
         scanner.close();
     }
 
-    public static void loadProcessData(String fileName) {
-        try {
-            File file = new File(fileName);
-            Scanner fileScanner = new Scanner(file);
-
+    public static List<ProcessThread> loadProcessData(String fileName) {
+        List<ProcessThread> threads = new ArrayList<>();
+        try (Scanner fileScanner = new Scanner(new File(fileName))) {
             if (fileScanner.hasNextLine()) {
-                fileScanner.nextLine(); 
+                fileScanner.nextLine();  
             }
 
             while (fileScanner.hasNext()) {
                 int pid = fileScanner.nextInt();
-                int arrivalTime = fileScanner.nextInt();
+                int arrivalTime = fileScanner.nextInt();  // Unused kept for formating sake
                 int burstTime = fileScanner.nextInt();
-                int priority = fileScanner.nextInt();
-                
-                processes.add(new Process(pid, arrivalTime, burstTime, priority));
+                int priority = fileScanner.nextInt();     // Unused kept for formating sake
+                threads.add(new ProcessThread(pid, burstTime));
             }
 
-            fileScanner.close();
-
-            System.out.println("Loaded Processes:");
-            for (Process p : processes) {
-                System.out.println(p);
-            }
-
+            System.out.println("Processes loaded: " + threads.size());
         } catch (FileNotFoundException e) {
             System.out.println("Error: File not found.");
         }
+        return threads;
+    }
+
+    public static void diningPhilosophers(String fileName) {
+        List<int[]> philosopherData = new ArrayList<>();
+
+        try (Scanner fileScanner = new Scanner(new File(fileName))) {
+            if (fileScanner.hasNextLine()) {
+                fileScanner.nextLine();  
+            }
+
+            while (fileScanner.hasNext()) {
+                int id = fileScanner.nextInt();
+                fileScanner.nextInt(); // arrival time
+                int burst = fileScanner.nextInt();
+                fileScanner.nextInt(); // priority
+                philosopherData.add(new int[]{id, burst});
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: File not found.");
+            return;
+        }
+
+        int numPhilosophers = philosopherData.size();
+        Lock[] forks = new ReentrantLock[numPhilosophers];
+        for (int i = 0; i < numPhilosophers; i++) {
+            forks[i] = new ReentrantLock();
+        }
+
+        Philosopher[] philosophers = new Philosopher[numPhilosophers];
+        for (int i = 0; i < numPhilosophers; i++) {
+            int id = philosopherData.get(i)[0];
+            int burst = philosopherData.get(i)[1];
+            Lock leftFork = forks[i];
+            Lock rightFork = forks[(i + 1) % numPhilosophers];
+            philosophers[i] = new Philosopher(id, leftFork, rightFork, burst);
+        }
+
+        for (Philosopher p : philosophers) {
+            p.start();
+        }
+
+        for (Philosopher p : philosophers) {
+            try {
+                p.join();
+            } catch (InterruptedException ignored) {}
+        }
+
+        System.out.println("Dining Philosophers simulation completed.\n");
     }
 
     public static String menuToStr() {
-        return "Welcome to Process Scheduling Simulation!\n"
-                + "Please Select a scheduling algorithm:\n"
-                + "[1]:\tFirst Come, First Served (FCFS)\n"
-                + "[2]:\tShortest Job First (SJF)\n"
-                + "[3]:\tRound Robin (RR)\n"
-                + "[4]:\tPriority Scheduling\n"
-                + "[9]:\tExit Simulation\n"
+        return "\nPlease select an option:\n"
+                + "[1]: Simulate Processes with Threads\n"
+                + "[2]: Solve Dining Philosophers with Locks\n"
+                + "[9]: Exit Simulation\n"
                 + "User Input:\t";
-    }
-
-    public static void fcfs() {
-        System.out.println("\nFirst Come, First Served (FCFS)\n");
-
-        // Sorts the processes by arrivalTime to get the "first comers" in order
-        processes.sort((p1, p2) -> Integer.compare(p1.arrivalTime, p2.arrivalTime));
-
-        //declare variables
-        int currentTime = 0;
-        int totalTAT = 0;
-        int totalWT = 0;
-        List<String> ganttChart = new ArrayList<>();
-        List<Integer> timeStamps = new ArrayList<>();
-
-        // the FCFS code to calculate and print
-        System.out.printf("%-5s %-10s %-10s %-10s %-10s %-10s\n","PID", "Arrival", "Burst", "Completion", "TAT", "WT");
-        for (Process p : processes) {
-            //to handle gaps in arrival time e.g p1 finishes at 4 but p2 doesnt start till 6
-            //current time would hold 4 since that is when last process finished but newest process arrives
-            // at 6 so we must account for the 2 seconds passed 
-            if (currentTime < p.arrivalTime) {
-                currentTime = p.arrivalTime;  
-            }
-
-            //calculate variables
-            int startTime = currentTime;
-            int completionTime = currentTime + p.burstTime;
-            int turnaroundTime = completionTime - p.arrivalTime;
-            int waitingTime = turnaroundTime - p.burstTime;
-
-            totalTAT += turnaroundTime;
-            totalWT += waitingTime;
-
-            //track details for gantt chart printing
-            ganttChart.add("P" + p.pid);
-            timeStamps.add(startTime);
-
-            //print details of process handled in FCSC
-            System.out.printf("%-5d %-10d %-10d %-10d %-10d %-10d\n", p.pid, p.arrivalTime, p.burstTime, completionTime, turnaroundTime, waitingTime);
-
-            //current time is when the process completes in FCFS unless there is a gap as handled above
-            currentTime = completionTime;
-        }
-        //add final time for gantt chart
-        timeStamps.add(currentTime);
-
-        //needed variables calculated and printed
-        int n = processes.size();
-        System.out.println("\nAverage Turnaround Time: " + (double) totalTAT / n);
-        System.out.println("Average Waiting Time: " + (double) totalWT / n);
-
-        //Gantt Chart printing
-        System.out.println("\nGantt Chart:");
-        System.out.print(" ");
-        System.out.println();
-
-        System.out.print("|");
-        for (String p : ganttChart) {
-            System.out.print("  " + p + "  |");
-        }
-        System.out.println();
-
-
-        for (int i = 0; i < timeStamps.size(); i++) {
-            System.out.printf("%-6d ", timeStamps.get(i));
-        }
-        System.out.println();
-        System.out.println();
-    }
-    
-
-    public static void sjf() {
-        System.out.println("\nShortest Job First (SJF)\n");
-
-        // Sorts the processes by arrivalTime to get the "first comers" in order
-        processes.sort((p1, p2) -> Integer.compare(p1.burstTime, p2.burstTime));
-
-        //declare variables
-        int currentTime = 0;
-        int totalTAT = 0;
-        int totalWT = 0;
-        List<String> ganttChart = new ArrayList<>();
-        List<Integer> timeStamps = new ArrayList<>();
-
-        // the FCFS code to calculate and print
-        System.out.printf("%-5s %-10s %-10s %-10s %-10s %-10s\n","PID", "Arrival", "Burst", "Completion", "TAT", "WT");
-        for (Process p : processes) {
-            //to handle gaps in arrival time e.g p1 finishes at 4 but p2 doesnt start till 6
-            //current time would hold 4 since that is when last process finished but newest process arrives
-            // at 6 so we must account for the 2 seconds passed 
-            if (currentTime < p.arrivalTime) {
-                currentTime = p.arrivalTime;  
-            }
-
-            //calculate variables
-            int startTime = currentTime;
-            int completionTime = currentTime + p.burstTime;
-            int turnaroundTime = completionTime - p.arrivalTime;
-            int waitingTime = turnaroundTime - p.burstTime;
-
-            totalTAT += turnaroundTime;
-            totalWT += waitingTime;
-
-            //track details for gantt chart printing
-            ganttChart.add("P" + p.pid);
-            timeStamps.add(startTime);
-
-            //print details of process handled in FCSC
-            System.out.printf("%-5d %-10d %-10d %-10d %-10d %-10d\n", p.pid, p.arrivalTime, p.burstTime, completionTime, turnaroundTime, waitingTime);
-
-            //current time is when the process completes in FCFS unless there is a gap as handled above
-            currentTime = completionTime;
-        }
-        //add final time for gantt chart
-        timeStamps.add(currentTime);
-
-        //needed variables calculated and printed
-        int n = processes.size();
-        System.out.println("\nAverage Turnaround Time: " + (double) totalTAT / n);
-        System.out.println("Average Waiting Time: " + (double) totalWT / n);
-
-        //Gantt Chart printing
-        System.out.println("\nGantt Chart:");
-        System.out.print(" ");
-        System.out.println();
-
-        System.out.print("|");
-        for (String p : ganttChart) {
-            System.out.print("  " + p + "  |");
-        }
-        System.out.println();
-
-
-        for (int i = 0; i < timeStamps.size(); i++) {
-            System.out.printf("%-6d ", timeStamps.get(i));
-        }
-        System.out.println();
-        System.out.println();
-    }
-
-    public static void rr() {
-        System.out.println("RR");
-    }
-
-    public static void ps() {
-        System.out.println("PS");
     }
 }
